@@ -1,11 +1,11 @@
 Tắt swap
 
-sudo swapoff -a
+*sudo swapoff -a*
 
 
 Cài docker ( tham khảo: https://docs.docker.com/engine/install/ubuntu/ )
 
-sudo apt-get remove docker docker-engine docker.io containerd runc
+```sudo apt-get remove docker docker-engine docker.io containerd runc
 
 sudo apt-get update
 
@@ -28,16 +28,16 @@ stable"
 sudo apt-get update
 
 sudo apt-get install docker-ce docker-ce-cli containerd.io
-
+```
 
 Kiểm tra docker có hoạt động không bằng lệnh
-
+```
 docker images -a
 docker ps -a
-
+```
 
 Cài kubectl, kubeadm ( tham khảo: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl )
-
+```
 sudo apt-get update && sudo apt-get install -y apt-transport-https curl
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
@@ -51,43 +51,44 @@ sudo apt-get update
 sudo apt-get install -y kubelet kubeadm kubectl
 
 sudo apt-mark hold kubelet kubeadm kubectl
-
+```
 
 Tạo cluster bằng kubeadm
-
+```
 sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --v=5
+```
 Init thành công sẽ hiện lệnh như hình dưới
 
 IS&T > Cách cài đặt k8s cho ubuntuserver > image2021-1-22_23-1-28.png
 
 
 Copy các lệnh như hình
-
+```
 mkdir -p $HOME/.kube
 
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
+```
 
 Cấu hình đường mạng cho cluster ( tham khảo: https://docs.projectcalico.org/getting-started/kubernetes/quickstart )
-
+```
 kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
 
 kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
-
+```
 
 Check cluster nodes bằng lệnh
-
+```
 kubectl get nodes -o wide
-
+```
 Cần chờ một chút để node master hiện chữ Ready
 Khi đã Ready ta có thể deploy dashboard
 IS&T > Cách cài đặt k8s cho ubuntuserver > image2021-1-22_23-8-3.png
 
 Cài đặt dashboard để xem tổng quan cluster ( tham khảo: https://github.com/kubernetes/dashboard )
 Tạo file dashboard.yaml
-
+```
 # http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
 # kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
 
@@ -403,7 +404,7 @@ effect: NoSchedule
 volumes:
 - name: tmp-volume
 emptyDir: {}
-
+```
 
 Chép file dashboard.yaml lên node master
 
