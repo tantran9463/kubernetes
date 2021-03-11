@@ -1,0 +1,51 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: sso-ad
+  name: sso-ad
+  namespace: api
+spec:
+  ports:
+    - name: api
+      port: 5000
+      targetPort: 80
+  selector:
+    k8s-app: sso-ad
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: sso-ad
+  name: sso-ad
+  namespace: api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: sso-ad
+  template:
+    metadata:
+      labels:
+        k8s-app: sso-ad
+    spec:
+      containers:
+        - name: sso-ad
+          image: hub.vietmap.vn/vietmap.sso.ad:1.0
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Test"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: api
+      imagePullSecrets:
+      - name: registry-secret
+      nodeSelector:
+        "kubernetes.io/os": linux
+        "kubernetes.io/hostname": u20-dev-test02
+          

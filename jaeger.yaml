@@ -1,0 +1,67 @@
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: jaeger
+  name: jaeger
+  namespace: trace-log
+spec:
+  type: NodePort
+  ports:
+    - name: trace
+      port: 6831
+      targetPort: 6831
+      protocol: UDP
+      nodePort: 30031
+    - name: ui
+      port: 16686
+      targetPort: 16686
+      protocol: TCP
+      nodePort: 30032
+    - name: metrics
+      port: 14269
+      targetPort: 14269
+      protocol: TCP
+      nodePort: 30030
+  selector:
+    k8s-app: jaeger
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: jaeger
+  name: jaeger
+  namespace: trace-log
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: jaeger
+  template:
+    metadata:
+      labels:
+        k8s-app: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.21
+          # env:
+          #   - name: QUERY_BASE_PATH
+          #     value: "/"
+          args:
+            - --memory.max-traces=10000
+          ports:
+            - containerPort: 6831
+              protocol: UDP
+            - containerPort: 16686
+              protocol: TCP
+            - containerPort: 14269
+              protocol: TCP
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test02

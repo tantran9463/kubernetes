@@ -1,0 +1,141 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: zipkin
+  name: zipkin
+  namespace: trace-log
+spec:
+  ports:
+    - port: 9411
+      targetPort: 9411
+  selector:
+    k8s-app: zipkin
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: zipkin
+  name: zipkin
+  namespace: trace-log
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: zipkin
+  template:
+    metadata:
+      labels:
+        k8s-app: zipkin
+    spec:
+      containers:
+        - name: zipkin
+          image: openzipkin/zipkin:latest
+          ports:
+            - containerPort: 9411
+              protocol: TCP
+      nodeSelector:
+        "kubernetes.io/os": linux
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: elasticsearch
+  name: elasticsearch
+  namespace: trace-log
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+  selector:
+    k8s-app: elasticsearch
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: elasticsearch
+  name: elasticsearch
+  namespace: trace-log
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: elasticsearch
+  template:
+    metadata:
+      labels:
+        k8s-app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:7.10.1
+          ports:
+            - containerPort: 9200
+              protocol: TCP
+      nodeSelector:
+        "kubernetes.io/os": linux
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kibana
+  name: kibana
+  namespace: trace-log
+spec:
+  ports:
+    - port: 5601
+      targetPort: 5601
+  selector:
+    k8s-app: kibana
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: kibana
+  name: kibana
+  namespace: trace-log
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kibana
+  template:
+    metadata:
+      labels:
+        k8s-app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: kibana:7.10.1
+          ports:
+            - containerPort: 5601
+              protocol: TCP
+      nodeSelector:
+        "kubernetes.io/os": linux
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule

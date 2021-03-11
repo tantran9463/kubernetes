@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: api-gateway
+data:
+  kong.yml: |
+    _format_version: "1.1"        
+    services:
+    - name: test
+      url: https://google.com
+      plugins:
+      - name: prometheus
+        service: test
+      routes:
+      - name: test
+        paths:
+        - /test
+
+    - name: billing
+      url: http://billing.api.svc.cluster.local:5000
+      plugins:
+      - name: prometheus
+        service: billing
+      routes:
+      - name: billing
+        paths:
+        - /billing
+
+    - name: weather
+      url: http://weather.api.svc.cluster.local:5000
+      plugins:
+      - name: prometheus
+        service: weather
+      routes:
+      - name: weather
+        paths:
+        - /weather
+        
+    - name: sso-ad
+      url: http://sso-ad.api.svc.cluster.local:5000
+      plugins:
+      - name: prometheus
+        service: sso-ad
+      routes:
+      - name: sso-ad
+        paths:
+        - /sso-ad
+
+    - name: login-sso
+      url: http://login-sso.api.svc.cluster.local:5001
+      plugins:
+      - name: prometheus
+        service: login-sso
+      routes:
+      - name: login-sso
+        paths:
+        - /test/login-sso
+
+    - name: ids4
+      url: http://ids4.api.svc.cluster.local:5000
+      plugins:
+      - name: prometheus
+        service: ids4
+      routes:
+      - name: ids4
+        paths:
+        - /ids4
+    
+    - name: registry
+      url: http://registry.docker.svc.cluster.local:5000
+      plugins:
+      - name: prometheus
+        service: registry
+      routes:
+      - name: registry
+        paths:
+        - /registry
+        
+    consumers:
+    - username: my-user
+      keyauth_credentials:
+      - key: my-key
+    
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kong
+  name: kong
+  namespace: api-gateway
+spec:
+  ports:
+    - name: gateway
+      port: 8001
+      targetPort: 8001
+    - name: api
+      port: 8000
+      targetPort: 8000
+  selector:
+    k8s-app: kong
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: kong
+  name: kong
+  namespace: api-gateway
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kong
+  template:
+    metadata:
+      labels:
+        k8s-app: kong
+    spec:
+      containers:
+        - name: kong
+          image: kong:latest
+          imagePullPolicy: Always
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: "/usr/local/kong/declarative/kong.yml"
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
+            - name: KONG_PROXY_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_PROXY_ERROR_LOG
+              value: "/dev/stderr"
+            - name: KONG_ADMIN_ERROR_LOG
+              value: "/dev/stderr"
+          ports:
+            - containerPort: 8001
+              protocol: TCP
+              name: gateway
+            - containerPort: 8000
+              protocol: TCP
+              name: api
+          volumeMounts:
+            - name: kong-vol
+              mountPath: /usr/local/kong/declarative/
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test02
+      volumes:
+        - name: kong-vol
+          configMap:
+            name: kong-config
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway-ingress
+  namespace: api-gateway
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /(.+)
+            pathType: Prefix
+            backend:
+              service:
+                name: kong
+                port:
+                  number: 8000

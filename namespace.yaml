@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitor
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: api-gateway
+  
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: api
+  
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cache
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trace-log
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: service
+
+---

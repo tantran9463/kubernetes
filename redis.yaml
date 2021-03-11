@@ -1,0 +1,46 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: redis
+  name: redis
+  namespace: cache
+spec:
+  type: NodePort
+  ports:
+    - port: 6379
+      targetPort: 6379
+      nodePort: 30079
+  selector:
+    k8s-app: redis
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: redis
+  name: redis
+  namespace: cache
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: redis
+  template:
+    metadata:
+      labels:
+        k8s-app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+              name: api
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test02
+          

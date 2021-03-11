@@ -1,0 +1,101 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: ids4
+  name: ids4
+  namespace: api
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    k8s-app: ids4
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: ids4
+  name: ids4
+  namespace: api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: ids4
+  template:
+    metadata:
+      labels:
+        k8s-app: ids4
+    spec:
+      containers:
+        - name: ids4
+          image: hub.vietmap.vn/vietmap.mt.identityserver4:1.0
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Testing"
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: api
+      imagePullSecrets:
+      - name: registry-secret
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test02
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: login-sso
+  name: login-sso
+  namespace: api
+spec:
+  ports:
+    - port: 5001
+      targetPort: 5001
+  selector:
+    k8s-app: login-sso
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: login-sso
+  name: login-sso
+  namespace: api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      k8s-app: login-sso
+  template:
+    metadata:
+      labels:
+        k8s-app: login-sso
+    spec:
+      containers:
+        - name: login-sso
+          image: hub.vietmap.vn/vietmap.loginsso:1.0
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Testing"
+          ports:
+            - containerPort: 5001
+              protocol: TCP
+              name: api
+      imagePullSecrets:
+      - name: registry-secret
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test02
+          

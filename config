@@ -1,0 +1,17 @@
+Host dev2
+	Hostname 192.168.38.107
+	User admin
+	
+Host bitbucket
+	Hostname 192.168.38.106
+	User root
+	LocalForward 7990 127.0.0.1:7990
+	
+Host dev
+	Hostname 192.168.30.90
+	User dev
+	LocalForward 8001 127.0.0.1:8001
+
+Host dev3
+	Hostname 192.168.38.109
+	User admin

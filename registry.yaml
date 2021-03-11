@@ -1,0 +1,248 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: docker
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: registry
+  namespace: docker
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  hostPath:
+    path: /home/admin/registry-pv
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - u20-dev-test03
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: registry-claim
+  namespace: docker
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: local-storage
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-config
+  namespace: docker
+data:
+  config.json: |
+    {"auths":{"https://hub.vietmap.vn/v2/":{"auth":"dGVzdFJlZ2lzdHJ5OlRlc3RAMTIzJCVe"}}}
+
+  htpasswd: |
+    testRegistry:$2y$05$rHF/kORGbkq11FcPOR/ELubOFfvn.2CmqxBbG1R6R2O9iJPjnqYvi
+
+  config.yml: |
+    version: 0.1
+    log:
+      fields:
+        service: registry
+    storage:
+      cache:
+        blobdescriptor: inmemory
+      filesystem:
+        rootdirectory: /var/lib/registry
+      delete:
+        enabled: true
+    http:
+      addr: 0.0.0.0:5000
+      host: https://hub.vietmap.vn
+      headers:
+        X-Content-Type-Options: [nosniff]
+        Access-Control-Allow-Origin: ['https://apis.vietmap.vn']
+        Access-Control-Allow-Methods: ['HEAD', 'GET', 'OPTIONS', 'DELETE']
+        Access-Control-Allow-Headers: ['Authorization', 'Accept']
+        Access-Control-Max-Age: [1728000]
+        Access-Control-Allow-Credentials: [true]
+        Access-Control-Expose-Headers: ['Docker-Content-Digest']
+      http2:
+        disabled: false
+      draintimeout: 60s
+      debug:
+        addr: 0.0.0.0:5001
+        prometheus:
+          enabled: true
+          path: /metrics
+    auth:
+      htpasswd:
+        realm: basic-realm
+        path: /etc/docker/registry/htpasswd
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: registry
+  name: registry
+  namespace: docker
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30092
+      name: api
+    - port: 5001
+      targetPort: 5001
+      nodePort: 30093
+      name: metrics
+  selector:
+    k8s-app: registry
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: registry
+  name: registry
+  namespace: docker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: registry
+  template:
+    metadata:
+      labels:
+        k8s-app: registry
+    spec:
+      containers:
+        - name: registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: api
+            - containerPort: 5001
+              protocol: TCP
+              name: metrics
+          volumeMounts:
+            - name: registry-vol
+              mountPath: /var/lib/registry
+              subPath: registry
+            - name: config-vol
+              mountPath: /etc/docker/registry
+      volumes:
+      - name: registry-vol
+        persistentVolumeClaim:
+          claimName: registry-claim
+      - name: config-vol
+        configMap:
+            name: registry-config
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test03
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: registry-web
+  name: registry-web
+  namespace: docker
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    k8s-app: registry-web
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: registry-web
+  name: registry-web
+  namespace: docker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: registry-web
+  template:
+    metadata:
+      labels:
+        k8s-app: registry-web
+    spec:
+      containers:
+        - name: registry-web
+          image: joxit/docker-registry-ui:static
+          env:
+            - name: URL
+              value: "https://hub.vietmap.vn"
+            - name: REGISTRY_URL
+              value: "http://registry.docker:5000"
+            - name: REGISTRY_TRUST_ANY_SSL
+              value: "true"
+            - name: REGISTRY_BASIC_AUTH
+              value: "dGVzdFJlZ2lzdHJ5OlRlc3RAMTIzJCVe"
+            - name: REGISTRY_TITLE
+              value: "hub.vietmap.vn"
+            - name: DELETE_IMAGES
+              value: "true"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: api
+      nodeSelector:
+        "kubernetes.io/hostname": u20-dev-test03
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: docker-ingress
+  namespace: docker
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - http:
+      paths:
+        - path: /registry(.+)
+          pathType: Prefix
+          backend:
+            service:
+              name: registry-web
+              port:
+                number: 80

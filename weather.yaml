@@ -1,0 +1,68 @@
+# sudo kubectl create secret docker-registry registry-secret -n api \
+# --docker-server=http://registry.docker:5000 \
+# --docker-username=testRegistry \
+# --docker-password=Test@123$%^ \
+# --docker-email=anlt@vietmap.vn -o yaml > registry-secret.yaml
+# {"auths":{"hub.vietmap.vn":{"username":"testRegistry","password":"Test@123$%^","email":"anlt@vietmap.vn","auth":"dGVzdFJlZ2lzdHJ5OlRlc3RAMTIzJCVe"}}}
+
+apiVersion: v1
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJodWIudmlldG1hcC52biI6eyJ1c2VybmFtZSI6InRlc3RSZWdpc3RyeSIsInBhc3N3b3JkIjoiVGVzdEAxMjMkJV4iLCJlbWFpbCI6ImFubHRAdmlldG1hcC52biIsImF1dGgiOiJkR1Z6ZEZKbFoybHpkSEo1T2xSbGMzUkFNVEl6SkNWZSJ9fX0K
+kind: Secret
+metadata:
+  name: registry-secret
+  namespace: api
+type: kubernetes.io/dockerconfigjson
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: weather
+  name: weather
+  namespace: api
+spec:
+  ports:
+    - name: api
+      port: 5000
+      targetPort: 5000
+  selector:
+    k8s-app: weather
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: weather
+  name: weather
+  namespace: api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: weather
+  template:
+    metadata:
+      labels:
+        k8s-app: weather
+    spec:
+      containers:
+        - name: weather
+          image: hub.vietmap.vn/vietmap.retail.weather:1.0
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Test"
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: api
+      imagePullSecrets:
+      - name: registry-secret
+      nodeSelector:
+        "kubernetes.io/os": linux
+        "kubernetes.io/hostname": u20-dev-test02
+          

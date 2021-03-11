@@ -1,0 +1,33 @@
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 192.168.0.0/16 # change according to your requirements
+  serviceSubnet: 10.96.0.0/12 # change according to your requirements
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+
+# sync; echo 1 > /proc/sys/vm/drop_caches
+#
+# sudo swapoff -a
+# sudo lsof -i:22
+# sudo systemctl daemon-reload && sudo systemctl restart kubelet
+#
+# crictl --runtime-endpoint /run/containerd/containerd.sock rm $(crictl --runtime-endpoint /run/containerd/containerd.sock ps -aq)
+# crictl --runtime-endpoint /run/containerd/containerd.sock rmp $(crictl --runtime-endpoint /run/containerd/containerd.sock pods -q)
+#
+# sudo kubeadm init --config kubeadm-config.yaml --cri-socket /run/containerd/containerd.sock -v 5
+#
+# kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+#
+# kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+#
+# kubeadm token create --print-join-command
+#
+# crictl --runtime-endpoint /run/containerd/containerd.sock ps -a
+# ctr -a /run/containerd/containerd.sock --namespace k8s.io image import vietmap.sso.ad.tar
+#
+# sudo kubeadm join 192.168.38.121:6443 --token ljz1tk.yq0qm3ov9jsev459 --discovery-token-ca-cert-hash sha256:1251bc1c4ad8ce2cc371d7e8e4a426365497b31f863ca672384558995fc2e7cb --cri-socket /run/containerd/containerd.sock -v 5
+# 
